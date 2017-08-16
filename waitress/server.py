@@ -196,16 +196,18 @@ class BaseWSGIServer(logging_dispatcher, object):
         else:
             server_name = str(self.socketmod.gethostname())
 
-        # Convert to a host name if necessary.
-        for c in server_name:
-            if c != '.' and not c.isdigit():
-                return server_name
+        if server_name == '0.0.0.0' or server_name == '::':
+            return 'localhost'
+
         try:
-            if server_name == '0.0.0.0' or server_name == '::':
-                return 'localhost'
             server_name = self.socketmod.gethostbyaddr(server_name)[0]
         except socket.error: # pragma: no cover
             pass
+
+        # If it contains an IPv6 literal, make sure to surround it with brackets
+        if ':' in server_name and '[' not in server_name: # pragma: no cover
+            server_name = '[{}]'.format(server_name)
+
         return server_name
 
     def getsockname(self):
